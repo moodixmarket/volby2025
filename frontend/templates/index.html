@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PS ČR 2025 - Election Results Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Parliamentary Elections Czech Republic 2025</h1>
+            <div class="header-info">
+                <span id="current-time"></span>
+                <span id="connection-status" class="status-badge">Disconnected</span>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="region-select">Select Region:</label>
+                <select id="region-select">
+                    <option value="CZ">Czech Republic (Total)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="view-type">View Type:</label>
+                <select id="view-type">
+                    <option value="current">Current Results</option>
+                    <option value="timeline">Timeline</option>
+                    <option value="totalvotes">Total Votes</option>
+                    <option value="comparison">Region Comparison</option>
+                    <option value="candidates">Top Candidates</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <button id="refresh-btn" class="btn btn-primary">Refresh Now</button>
+                <button id="export-csv" class="btn btn-secondary">Export CSV</button>
+                <button id="export-json" class="btn btn-secondary">Export JSON</button>
+            </div>
+        </div>
+
+        <div class="progress-section">
+            <h2>Counting Progress</h2>
+            <div class="progress-stats">
+                <div class="stat-card">
+                    <h3>Districts Counted</h3>
+                    <div class="stat-value">
+                        <span id="counted-districts">0</span> / <span id="total-districts">0</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                    </div>
+                    <div class="stat-percentage" id="counted-percentage">0%</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Turnout</h3>
+                    <div class="stat-value" id="turnout">0%</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Valid Votes</h3>
+                    <div class="stat-value" id="valid-votes">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Counting Speed</h3>
+                    <div class="stat-value"><span id="counting-speed">0</span> districts/hour</div>
+                    <div class="stat-subtitle">Est. completion: <span id="est-completion">--:--</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Current Results View -->
+            <div id="current-view" class="view-panel active">
+                <h2>Current Results</h2>
+                <div class="chart-container">
+                    <canvas id="results-chart"></canvas>
+                </div>
+                <div class="results-table">
+                    <table id="results-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Party</th>
+                                <th>Votes</th>
+                                <th>Percentage</th>
+                                <th>Mandates</th>
+                                <th>Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Timeline View -->
+            <div id="timeline-view" class="view-panel">
+                <h2>Results Timeline with Volume</h2>
+                <div class="timeline-controls">
+                    <label for="timeline-range">Data Range:</label>
+                    <select id="timeline-range">
+                        <option value="all" selected>All Available Data</option>
+                        <option value="1">Last Hour</option>
+                        <option value="6">Last 6 Hours</option>
+                        <option value="12">Last 12 Hours</option>
+                        <option value="24">Last 24 Hours</option>
+                        <option value="48">Last 48 Hours</option>
+                    </select>
+                </div>
+                <div class="zoom-controls">
+                    <button id="zoom-reset">Reset Zoom</button>
+                    <button id="zoom-in">Zoom In</button>
+                    <button id="zoom-out">Zoom Out</button>
+                    <span>|</span>
+                    <button id="pan-left">← Pan Left</button>
+                    <button id="pan-right">Pan Right →</button>
+                    <span>|</span>
+                    <span style="font-size: 12px; color: #666;">🖱️ Mouse controls: Scroll to zoom, Click+drag to select area, Shift+drag to pan</span>
+                </div>
+                <div class="chart-container-large">
+                    <canvas id="timeline-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Total Votes View -->
+            <div id="totalvotes-view" class="view-panel">
+                <h2>Total Votes Progress by Party</h2>
+                <div class="timeline-controls">
+                    <label for="totalvotes-range">Data Range:</label>
+                    <select id="totalvotes-range">
+                        <option value="all" selected>All Available Data</option>
+                        <option value="1">Last Hour</option>
+                        <option value="6">Last 6 Hours</option>
+                        <option value="12">Last 12 Hours</option>
+                        <option value="24">Last 24 Hours</option>
+                        <option value="48">Last 48 Hours</option>
+                    </select>
+                </div>
+                <div class="stats-summary">
+                    <div class="stat-inline">
+                        <span class="stat-label">Total Counted:</span>
+                        <span id="current-total-votes" class="stat-value-inline">0</span>
+                    </div>
+                    <div class="stat-inline">
+                        <span class="stat-label">Avg. New Votes/min:</span>
+                        <span id="avg-votes-per-minute" class="stat-value-inline">0</span>
+                    </div>
+                    <div class="stat-inline">
+                        <span class="stat-label">Leading Party:</span>
+                        <span id="peak-votes-per-minute" class="stat-value-inline">-</span>
+                    </div>
+                </div>
+                <div class="chart-container-large">
+                    <canvas id="totalvotes-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Comparison View -->
+            <div id="comparison-view" class="view-panel">
+                <h2>Region Comparison</h2>
+                <div class="comparison-controls">
+                    <label>Select Regions to Compare (check at least one):</label>
+                    <div id="region-checkboxes"></div>
+                    <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                        ℹ️ Check regions above to see their results comparison
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="comparison-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Candidates View -->
+            <div id="candidates-view" class="view-panel">
+                <h2>Top Candidates by Preferential Votes</h2>
+                <div class="candidates-filter">
+                    <label for="party-filter">Filter by Party:</label>
+                    <select id="party-filter">
+                        <option value="">All Parties</option>
+                    </select>
+                </div>
+                <div class="candidates-table">
+                    <table id="candidates-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Party</th>
+                                <th>Region</th>
+                                <th>Position</th>
+                                <th>Preferential Votes</th>
+                                <th>Percentage</th>
+                                <th>Elected</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidates-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="predictions-section">
+            <h2>Predictions</h2>
+            <div class="prediction-info">
+                <p>Based on <span id="prediction-percentage">0%</span> of districts counted</p>
+            </div>
+            <div class="chart-container-small">
+                <canvas id="prediction-chart"></canvas>
+            </div>
+        </div>
+
+        <footer>
+            <p>Data source: volby.cz | Auto-refresh every 10 seconds</p>
+            <p>Last update: <span id="last-update">Never</span></p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
