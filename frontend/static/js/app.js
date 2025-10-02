@@ -176,6 +176,7 @@ function initializeCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             plugins: {
                 legend: {
                     display: false
@@ -209,6 +210,7 @@ function initializeCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             interaction: {
                 mode: 'index',
                 intersect: false,
@@ -353,6 +355,7 @@ function initializeCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             plugins: {
                 title: {
                     display: true,
@@ -382,6 +385,7 @@ function initializeCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             interaction: {
                 mode: 'index',
                 intersect: false,
@@ -500,6 +504,7 @@ function initializeCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             plugins: {
                 legend: {
                     position: 'right'
