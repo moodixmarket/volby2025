@@ -1,0 +1,21 @@
+services:
+  volby2025:
+    build: .
+    container_name: volby2025-app
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persist databáze a logů
+      - ./database:/app/database
+      - ./logs:/app/logs
+    environment:
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=8080
+      - COLLECTION_INTERVAL=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
