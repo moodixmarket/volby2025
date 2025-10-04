@@ -1,6 +1,7 @@
 from lxml import etree
 from datetime import datetime
 import logging
+import html
 from typing import Dict, List, Optional, Tuple
 
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +20,13 @@ class XMLParser:
         Parsování hlavních výsledků voleb
         """
         try:
-            root = etree.fromstring(xml_content.encode('utf-8'))
+            # Pokud je xml_content string, enkódovat jako bytes
+            if isinstance(xml_content, str):
+                xml_bytes = xml_content.encode('utf-8')
+            else:
+                xml_bytes = xml_content
+            
+            root = etree.fromstring(xml_bytes)
             
             results = {
                 'timestamp': datetime.now(),
@@ -62,7 +69,7 @@ class XMLParser:
             for kraj in root.findall('.//ns:KRAJ', self.namespaces):
                 for strana in kraj.findall('ns:STRANA', self.namespaces):
                     party_code = strana.get('KSTRANA')
-                    party_name = strana.get('NAZ_STR')
+                    party_name = html.unescape(strana.get('NAZ_STR', ''))  # Dekódovat HTML entity
                     hodnoty = strana.find('ns:HODNOTY_STRANA', self.namespaces)
                     
                     if hodnoty is not None:
