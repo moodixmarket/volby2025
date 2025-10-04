@@ -29,7 +29,9 @@ class DataCollector:
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'Volby2025-DataCollector/1.0'
+            'User-Agent': 'Volby2025-DataCollector/1.0',
+            'Accept-Charset': 'utf-8',
+            'Accept': 'application/xml, text/xml'
         })
         self.processed_batches: Set[int] = set()
         self.last_batch_check = datetime.now()
@@ -43,6 +45,8 @@ class DataCollector:
             try:
                 response = self.session.get(url, timeout=10)
                 response.raise_for_status()
+                # Ujistit se, že encoding je UTF-8
+                response.encoding = 'utf-8'
                 return response.text
             except requests.HTTPError as e:
                 last_status_code = e.response.status_code

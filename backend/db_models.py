@@ -135,8 +135,18 @@ class Candidate(Base):
         Index('idx_candidates_region', 'region_id'),
     )
 
-# Vytvoření engine a session
-engine = create_engine(config.DATABASE_URL, pool_size=config.POOL_SIZE, max_overflow=config.MAX_OVERFLOW)
+# Vytvoření engine a session s UTF-8 podporou
+engine = create_engine(
+    config.DATABASE_URL, 
+    pool_size=config.POOL_SIZE, 
+    max_overflow=config.MAX_OVERFLOW,
+    connect_args={
+        'check_same_thread': False,
+        'timeout': 20
+    },
+    # Explicitně nastavit encoding
+    encoding='utf-8'
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
