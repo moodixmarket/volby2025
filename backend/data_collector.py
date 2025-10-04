@@ -34,7 +34,7 @@ class DataCollector:
         self.processed_batches: Set[int] = set()
         self.last_batch_check = datetime.now()
         
-    def download_xml(self, url: str, max_retries: int = 3) -> Optional[str]:
+    def download_xml(self, url: str, max_retries: int = 2) -> Optional[str]:  # Sníženo na 2 pokusy
         """
         Stažení XML dat z URL
         """
@@ -46,19 +46,21 @@ class DataCollector:
                 return response.text
             except requests.HTTPError as e:
                 last_status_code = e.response.status_code
-                # Pokud je 404, loguj pouze jednou jako debug (ne error)
-                if e.response.status_code == 404:
+                # Ignorovat 404 a 500 chyby - jsou očekávané
+                if e.response.status_code in [404, 500, 503]:
                     if attempt == max_retries - 1:
-                        logger.debug(f"Data ještě nejsou dostupná (404): {url}")
+                        logger.debug(f"Server error ({e.response.status_code}): {url}")
                     return None
-                logger.warning(f"Pokus {attempt + 1}/{max_retries} selhal pro {url}: {e}")
+                # Pro jiné HTTP chyby logovat warning
+                if attempt == max_retries - 1:
+                    logger.warning(f"HTTP {e.response.status_code} pro {url}")
             except requests.RequestException as e:
-                logger.warning(f"Pokus {attempt + 1}/{max_retries} selhal pro {url}: {e}")
+                # Pro connection errors jen debug
+                if attempt == max_retries - 1:
+                    logger.debug(f"Connection error pro {url}: {e}")
                 if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)  # Exponenciální backoff
+                    time.sleep(1)  # Kratší čekání
         
-        if last_status_code != 404:  # Pro 404 již logováno jako debug
-            logger.error(f"Nepodařilo se stáhnout {url} po {max_retries} pokusech")
         return None
     
     def save_raw_data(self, source_type: str, xml_content: str, 
@@ -216,14 +218,17 @@ class DataCollector:
             try:
                 start_time = time.time()
                 
-                # Stažení všech typů dat
+                # Hlavní výsledky stahovat vždy
                 self.collect_main_results()
-                self.collect_krajmesta_results()
-                self.collect_zahranici_results()
-                self.collect_candidates_results()
                 
-                # Stažení okresů (méně často)
-                if iteration % 10 == 0:
+                # Ostatní data stahovat méně často (každou 5. iteraci = 25 sekund)
+                if iteration % 5 == 0:
+                    self.collect_krajmesta_results()
+                    self.collect_zahranici_results()
+                    self.collect_candidates_results()
+                
+                # Stažení okresů ještě méně často (každou 20. iteraci = 100 sekund)
+                if iteration % 20 == 0:
                     self.collect_okres_results()
                 
                 # Kontrola dávkových souborů (každých 60 sekund)
@@ -232,8 +237,8 @@ class DataCollector:
                     self.collect_batch_results()
                     self.last_batch_check = current_time
                 
-                # Zpracování a agregace každých 30 sekund
-                if iteration % 30 == 0:
+                # Zpracování a agregace každých 6 iterací (30 sekund)
+                if iteration % 6 == 0:
                     self.process_and_aggregate()
                 
                 # Vypočítat čas do dalšího stažení

@@ -38,7 +38,7 @@ OKRES_CODES = [
 ]
 
 # Nastavení stahování
-DOWNLOAD_INTERVAL = 1  # sekund mezi stahováním
+DOWNLOAD_INTERVAL = 5  # sekund mezi stahováním - zvýšeno pro menší zátěž serveru
 MAX_BATCH_NUMBER = 9999  # maximální číslo dávky
 BATCH_CHECK_INTERVAL = 60  # sekund mezi kontrolami nových dávek
 
