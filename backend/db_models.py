@@ -143,9 +143,7 @@ engine = create_engine(
     connect_args={
         'check_same_thread': False,
         'timeout': 20
-    },
-    # Explicitně nastavit encoding
-    encoding='utf-8'
+    }
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
