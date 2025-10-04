@@ -96,13 +96,14 @@ class DataCollector:
     
     def collect_krajmesta_results(self):
         """
-        Stažení výsledků krajských měst
+        Stažení výsledků krajů
         """
-        url = config.URLS['krajmesta']
-        xml_content = self.download_xml(url)
-        if xml_content:
-            self.save_raw_data('krajmesta', xml_content)
-            logger.info("Staženy výsledky krajských měst")
+        url = config.URLS.get('kraje')
+        if url:
+            xml_content = self.download_xml(url)
+            if xml_content:
+                self.save_raw_data('kraje', xml_content)
+                logger.info("Staženy výsledky krajů")
     
     def collect_zahranici_results(self):
         """
@@ -128,13 +129,26 @@ class DataCollector:
         """
         Stažení výsledků všech okresů
         """
+        # Nejdřív zkusit souhrnný soubor pro všechny okresy
+        url_summary = config.URLS.get('okresy')
+        if url_summary:
+            xml_content = self.download_xml(url_summary)
+            if xml_content:
+                self.save_raw_data('okresy_summary', xml_content)
+                logger.info("Staženy souhrnné výsledky okresů")
+                return
+        
+        # Pokud souhrnný soubor neexistuje, zkusit jednotlivé okresy
+        collected = 0
         for okres_code in config.OKRES_CODES:
-            url = f"{config.BASE_URL}/okresy/vysledky_okres_{okres_code}.xml"
+            url = f"{config.BASE_URL}/vysledky_okres_{okres_code}.xml"
             xml_content = self.download_xml(url)
             if xml_content:
                 self.save_raw_data('okres', xml_content, okres_code)
+                collected += 1
         
-        logger.info(f"Staženy výsledky {len(config.OKRES_CODES)} okresů")
+        if collected > 0:
+            logger.info(f"Staženy výsledky {collected} okresů")
     
     def collect_batch_results(self):
         """

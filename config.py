@@ -10,25 +10,31 @@ LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 
 # URL pro stahování dat
-BASE_URL = "https://www.volby.cz/appdata/ps2025/odata"
+BASE_URL = "https://www.volby.cz/opendata/ps2025/PS2025reg"  
+OPENDATA_URL = "https://www.volby.cz/opendata/ps2025"
+
+# Hlavní soubory - tyto existují
 URLS = {
-    'main': f"{BASE_URL}/vysledky.xml",
-    'krajmesta': f"{BASE_URL}/vysledky_krajmesta.xml",
-    'zahranici': f"{BASE_URL}/vysledky_zahranici.xml",
-    'kandidati': f"{BASE_URL}/vysledky_kandid.xml",
+    'main': "https://www.volby.cz/appdata/ps2025/odata/vysledky.xml",  # Toto funguje podle uživatele
+    'kraje': f"{BASE_URL}/vysledky_kraje.xml",
+    'okresy': f"{BASE_URL}/vysledky_okres.xml",
+    'zahranici': f"{OPENDATA_URL}/PS2025zah/vysledky_zah.xml",
+    'kandidati': f"{OPENDATA_URL}/PS2025/vysledky_kandid.xml",
 }
 
-# Okresy - kódy okresů ČR
+# Pro jednotlivé okresy použijeme jiný formát
+# Format: vysledky_okres_XXXX.xml kde XXXX je kód okresu
 OKRES_CODES = [
-    'CZ0100', 'CZ0201', 'CZ0202', 'CZ0203', 'CZ0204', 'CZ0205', 'CZ0206', 'CZ0207', 'CZ0208', 'CZ0209',
-    'CZ020A', 'CZ020B', 'CZ020C', 'CZ0311', 'CZ0312', 'CZ0313', 'CZ0314', 'CZ0315', 'CZ0316', 'CZ0317',
-    'CZ0321', 'CZ0322', 'CZ0323', 'CZ0324', 'CZ0325', 'CZ0326', 'CZ0327', 'CZ0411', 'CZ0412', 'CZ0413',
-    'CZ0421', 'CZ0422', 'CZ0423', 'CZ0424', 'CZ0425', 'CZ0426', 'CZ0427', 'CZ0511', 'CZ0512', 'CZ0513',
-    'CZ0514', 'CZ0521', 'CZ0522', 'CZ0523', 'CZ0524', 'CZ0525', 'CZ0531', 'CZ0532', 'CZ0533', 'CZ0534',
-    'CZ0611', 'CZ0612', 'CZ0613', 'CZ0614', 'CZ0615', 'CZ0621', 'CZ0622', 'CZ0623', 'CZ0624', 'CZ0625',
-    'CZ0626', 'CZ0627', 'CZ0631', 'CZ0632', 'CZ0633', 'CZ0634', 'CZ0635', 'CZ0641', 'CZ0642', 'CZ0643',
-    'CZ0644', 'CZ0645', 'CZ0646', 'CZ0647', 'CZ0711', 'CZ0712', 'CZ0713', 'CZ0714', 'CZ0715', 'CZ0721',
-    'CZ0722', 'CZ0723', 'CZ0724', 'CZ0801', 'CZ0802', 'CZ0803', 'CZ0804', 'CZ0805', 'CZ0806'
+    '1100', '2101', '2102', '2103', '2104', '2105', '2106', '2107', '2108', '2109',
+    '210A', '210B', '3101', '3102', '3103', '3104', '3105', '3106', '3107',
+    '3201', '3202', '3203', '3204', '3205', '3206', '3207', '3208', '3209', '320A', '320B',
+    '4101', '4102', '4103', '4104', '4105', '4106', '4107', '4201', '4202', '4203',
+    '4204', '4205', '4206', '4207', '5101', '5102', '5103', '5104', '5201', '5202',
+    '5203', '5301', '5302', '5303', '5304', '6101', '6102', '6103', '6104', '6105',
+    '6106', '6107', '6201', '6202', '6203', '6204', '6205', '6206', '6207', '6301',
+    '6302', '6303', '6304', '6305', '6401', '6402', '6403', '6404', '6405', '6406',
+    '7101', '7102', '7103', '7104', '7105', '7201', '7202', '7203', '8101', '8102',
+    '8103', '8104', '8105', '8106', '8107'
 ]
 
 # Nastavení stahování
