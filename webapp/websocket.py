@@ -86,18 +86,22 @@ class RealtimeUpdater:
                         party_results[result.party_id] = {
                             'party_code': result.party.code,
                             'party_name': result.party.name,
+                            'party_number': result.party.number,
                             'votes': result.votes,
                             'percentage': result.percentage,
                             'mandates': result.mandates
                         }
-                
+
+                # Seřadit podle hlasů (stejně jako REST API)
+                sorted_results = sorted(party_results.values(), key=lambda x: x['votes'], reverse=True)
+
                 update_data = {
                     'type': 'results_update',
                     'region': {
                         'code': region.code,
                         'name': region.name
                     },
-                    'results': list(party_results.values()),
+                    'results': sorted_results,
                     'progress': None,
                     'timestamp': datetime.now().isoformat()
                 }
@@ -107,6 +111,9 @@ class RealtimeUpdater:
                         'counted_districts': latest_progress.counted_districts,
                         'total_districts': latest_progress.total_districts,
                         'percentage_counted': latest_progress.percentage_counted,
+                        'total_voters': latest_progress.total_voters,
+                        'total_votes': latest_progress.total_votes,
+                        'valid_votes': latest_progress.valid_votes,
                         'turnout': latest_progress.turnout
                     }
                 

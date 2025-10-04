@@ -600,7 +600,26 @@ function loadCurrentResults() {
             updateResultsDisplay(data);
             loadProgress();
             loadPredictions();
+            // Vždy použít REST API pro counting speed jako fallback
+            loadCountingSpeedFromAPI();
+            // Zkusit také WebSocket pokud je připojený
             requestCountingSpeed();
+        });
+}
+
+function loadCountingSpeedFromAPI() {
+    fetch(`/api/counting_speed?region=${currentRegion}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error) {
+                updateCountingSpeed({
+                    districts_per_hour: data.districts_per_hour,
+                    estimated_hours: data.estimated_hours_to_complete
+                });
+            }
+        })
+        .catch(error => {
+            console.log('Counting speed data not available yet');
         });
 }
 
@@ -989,12 +1008,17 @@ function handleRealtimeUpdate(data) {
     // Aktualizace pouze pokud je to pro aktuální region
     if (data.region && data.region.code === currentRegion) {
         if (data.results) {
-            updateResultsDisplay({ results: data.results, region: data.region });
+            // Seřadit výsledky podle hlasů před zobrazením (stejně jako REST API)
+            const sortedResults = [...data.results].sort((a, b) => b.votes - a.votes);
+            updateResultsDisplay({ results: sortedResults, region: data.region });
         }
-        
+
         if (data.progress) {
             updateProgressDisplay(data.progress);
         }
+
+        // Požádat o aktualizaci counting speed
+        requestCountingSpeed();
     }
 }
 

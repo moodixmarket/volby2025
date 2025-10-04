@@ -33,5 +33,5 @@ ENV FLASK_HOST=0.0.0.0
 ENV FLASK_PORT=8080
 ENV PYTHONUNBUFFERED=1
 
-# Spuštění aplikace s explicitním nastavením hostu
-CMD ["python", "-c", "from webapp.app import app; app.run(host='0.0.0.0', port=8080, debug=False)"]
+# Spuštění aplikace pomocí start_all.sh nebo pomocí Bash scriptu pro start obou služeb
+ENTRYPOINT ["/docker-entrypoint.sh"]
