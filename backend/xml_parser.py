@@ -11,7 +11,7 @@ class XMLParser:
     
     def __init__(self):
         self.namespaces = {
-            'ns': 'http://www.volby.cz/ps/2025'
+            'ns': 'http://www.volby.cz/ps/'
         }
     
     def parse_main_results(self, xml_content: str) -> Dict:
@@ -28,28 +28,64 @@ class XMLParser:
                 'progress': {}
             }
             
-            # Celkové informace o průběhu sčítání
-            progress_elem = root.find('.//UCAST', self.namespaces)
-            if progress_elem is not None:
+            # Celkové informace o průběhu sčítání - sečteme ze všech krajů
+            total_districts = 0
+            counted_districts = 0
+            total_voters = 0
+            total_votes = 0
+            valid_votes = 0
+            
+            # Nejdřív projdeme všechny kraje pro celkovou statistiku
+            for kraj in root.findall('.//ns:KRAJ', self.namespaces):
+                ucast = kraj.find('ns:UCAST', self.namespaces)
+                if ucast is not None:
+                    total_districts += int(ucast.get('OKRSKY_CELKEM', 0))
+                    counted_districts += int(ucast.get('OKRSKY_ZPRAC', 0))
+                    total_voters += int(ucast.get('ZAPSANI_VOLICI', 0))
+                    total_votes += int(ucast.get('VYDANE_OBALKY', 0))
+                    valid_votes += int(ucast.get('PLATNE_HLASY', 0))
+            
+            if total_districts > 0:
                 results['progress'] = {
-                    'total_districts': int(progress_elem.get('OKRSKY_CELKEM', 0)),
-                    'counted_districts': int(progress_elem.get('OKRSKY_ZPRAC', 0)),
-                    'percentage_counted': float(progress_elem.get('OKRSKY_ZPRAC_PROC', 0)),
-                    'total_voters': int(progress_elem.get('ZAPSANI_VOLICI', 0)),
-                    'total_votes': int(progress_elem.get('VYDANE_OBALKY', 0)),
-                    'valid_votes': int(progress_elem.get('PLATNE_HLASY', 0)),
-                    'turnout': float(progress_elem.get('UCAST_PROC', 0))
+                    'total_districts': total_districts,
+                    'counted_districts': counted_districts,
+                    'percentage_counted': round(counted_districts / total_districts * 100, 2) if total_districts > 0 else 0,
+                    'total_voters': total_voters,
+                    'total_votes': total_votes,
+                    'valid_votes': valid_votes,
+                    'turnout': round(total_votes / total_voters * 100, 2) if total_voters > 0 else 0
                 }
             
-            # Výsledky jednotlivých stran
-            for strana in root.findall('.//STRANA', self.namespaces):
+            # Výsledky jednotlivých stran - sečteme ze všech krajů
+            party_totals = {}
+            
+            for kraj in root.findall('.//ns:KRAJ', self.namespaces):
+                for strana in kraj.findall('ns:STRANA', self.namespaces):
+                    party_code = strana.get('KSTRANA')
+                    party_name = strana.get('NAZ_STR')
+                    hodnoty = strana.find('ns:HODNOTY_STRANA', self.namespaces)
+                    
+                    if hodnoty is not None:
+                        votes = int(hodnoty.get('HLASY', 0))
+                        
+                        if party_code not in party_totals:
+                            party_totals[party_code] = {
+                                'code': party_code,
+                                'name': party_name,
+                                'votes': 0
+                            }
+                        party_totals[party_code]['votes'] += votes
+            
+            # Vypočítáme procenta a přidáme do výsledků
+            for party in party_totals.values():
+                percentage = round(party['votes'] / valid_votes * 100, 2) if valid_votes > 0 else 0
                 party_data = {
-                    'code': strana.get('KSTRANA'),
-                    'name': strana.get('NAZ_STR'),
-                    'number': int(strana.get('POR_STR_HL', 0)),
-                    'votes': int(strana.get('HLASY', 0)),
-                    'percentage': float(strana.get('PROC_HLASU', '0').replace(',', '.')),
-                    'mandates': int(strana.get('MANDATY', 0))
+                    'code': party['code'],
+                    'name': party['name'],
+                    'number': int(party['code']),  # Použijeme kód jako číslo
+                    'votes': party['votes'],
+                    'percentage': percentage,
+                    'mandates': 0  # TODO: počítat mandáty podle D'Hondtovy metody
                 }
                 results['parties'].append(party_data)
             
