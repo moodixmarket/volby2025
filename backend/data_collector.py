@@ -38,17 +38,27 @@ class DataCollector:
         """
         Stažení XML dat z URL
         """
+        last_status_code = None
         for attempt in range(max_retries):
             try:
                 response = self.session.get(url, timeout=10)
                 response.raise_for_status()
                 return response.text
+            except requests.HTTPError as e:
+                last_status_code = e.response.status_code
+                # Pokud je 404, loguj pouze jednou jako debug (ne error)
+                if e.response.status_code == 404:
+                    if attempt == max_retries - 1:
+                        logger.debug(f"Data ještě nejsou dostupná (404): {url}")
+                    return None
+                logger.warning(f"Pokus {attempt + 1}/{max_retries} selhal pro {url}: {e}")
             except requests.RequestException as e:
                 logger.warning(f"Pokus {attempt + 1}/{max_retries} selhal pro {url}: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)  # Exponenciální backoff
         
-        logger.error(f"Nepodařilo se stáhnout {url} po {max_retries} pokusech")
+        if last_status_code != 404:  # Pro 404 již logováno jako debug
+            logger.error(f"Nepodařilo se stáhnout {url} po {max_retries} pokusech")
         return None
     
     def save_raw_data(self, source_type: str, xml_content: str, 
